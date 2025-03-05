@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "6r0jo7M69zc=",
+  "success": true,
+  "projectFilePath": "/Users/finler6/Desktop/project/webApi/noteApi/noteApi/noteApi.csproj",
+  "expectedPackageFiles": [
+    "/Users/finler6/.nuget/packages/microsoft.aspnetcore.openapi/9.0.0/microsoft.aspnetcore.openapi.9.0.0.nupkg.sha512",
+    "/Users/finler6/.nuget/packages/microsoft.openapi/1.6.17/microsoft.openapi.1.6.17.nupkg.sha512"
+  ],
+  "logs": []
+}
