@@ -1,41 +1,67 @@
-var builder = WebApplication.CreateBuilder(args);
+using noteApi;
+using Microsoft.EntityFrameworkCore;
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+builder.Services.AddDbContext<NoteDbContext>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment()) 
 {
-    app.MapOpenApi();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
-
-var summaries = new[]
+using (var scope = app.Services.CreateScope())
 {
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
+    var db = scope.ServiceProvider.GetRequiredService<NoteDbContext>();
+    db.Database.Migrate();
+}
 
-app.MapGet("/weatherforecast", () =>
-    {
-        var forecast = Enumerable.Range(1, 5).Select(index =>
-                new WeatherForecast
-                (
-                    DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-                    Random.Shared.Next(-20, 55),
-                    summaries[Random.Shared.Next(summaries.Length)]
-                ))
-            .ToArray();
-        return forecast;
-    })
-    .WithName("GetWeatherForecast");
+app.MapGet("/notes", async (NoteDbContext db) => await db.Notes.ToListAsync());
+
+app.MapGet("/notes/{id:int}", async (int id, NoteDbContext db) =>
+{
+    var note = await db.Notes.FindAsync(id);
+    return note != null ? Results.Json(note) : Results.NotFound("Note not found!");
+});
+
+app.MapPost("/notes", async (Note note, NoteDbContext db) =>
+{
+    db.Notes.Add(note);
+    await db.SaveChangesAsync();
+    return Results.Created($"/notes/{note.Id}", note);
+});
+
+app.MapPut("/notes/{id:int}", async (int id, Note updatedNote, NoteDbContext db) =>
+{
+    var note = await db.Notes.FindAsync(id);
+    if (note == null) return Results.NotFound("Task not found");
+
+    note.Title = updatedNote.Title;
+    note.Content = updatedNote.Content;
+    await db.SaveChangesAsync();
+    
+    return Results.Ok(note);
+});
+
+app.MapDelete("/notes/{id:int}", async (int id, NoteDbContext db) =>
+{
+    var note = await db.Notes.FindAsync(id);
+    if (note == null) return Results.NotFound("Task not found");
+    
+    db.Notes.Remove(note);
+    await db.SaveChangesAsync();
+    return Results.Ok("Note deleted");
+});
 
 app.Run();
 
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
+public class Note
 {
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+    public int Id { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string Content { get; set; } = string.Empty;
 }
